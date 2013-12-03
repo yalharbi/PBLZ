@@ -58,6 +58,7 @@ public class Pebble {
 		}
 		for(int i=0;i<required; i++){
 			int pos = rand.nextInt(pebbles);
+			while(colors[pos]==77) rand.nextInt(pebbles);
 			colors[pos] = 77;
 		}
 		return colors;

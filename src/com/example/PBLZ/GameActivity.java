@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -45,13 +46,24 @@ public class GameActivity  extends Activity {
 		Pebble pebbles[];
 		boolean caught = false;
 		int counter=0;
+		int numRequired = 1;
+		int numCaught = 0;
 		Bitmap playerPebble, divide;
 		Bundle extras;
 		MediaPlayer music;
+		String tip = "";
+		int highestScore;
 		public GameView(Context context){
 			super(context);
 			AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 			audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 7, 0);
+			
+			DatabaseHelper helper = new DatabaseHelper(context);
+			SQLiteDatabase database = helper.getReadableDatabase();
+			Cursor c = database.rawQuery("SELECT * FROM Highscores ORDER BY score DESC", null);
+			if(c.moveToFirst())
+				highestScore = c.getInt(1);
+			database.close();
 			
 			music = MediaPlayer.create(context, R.raw.music);
 			music.setLooping(true);
@@ -98,7 +110,7 @@ public class GameActivity  extends Activity {
 				paint.setTypeface(font);
 				textPaint.setTextSize(32);
 				textPaint.setStyle(Paint.Style.STROKE);
-				canvas.drawText("Well done! " + extras.getString("name"), screenWidth/2-100, screenHeight/2, textPaint);
+				canvas.drawText("Well done! " + tip, screenWidth/2-100, screenHeight/2, textPaint);
 				caught = false;
 				counter++;
 				if(counter>=100) counter = 0;
@@ -111,6 +123,7 @@ public class GameActivity  extends Activity {
 			paint.setTypeface(font);
 			paint.setTextSize(28);
 			paint.setTextAlign(Paint.Align.LEFT);
+			canvas.drawText("Score to beat: " + highestScore,0, 50, paint);
 			canvas.drawText("Score: " + score,0, 100, paint);
 			paint.setStrokeWidth(10);
 			//canvas.drawLine(0, screenHeight-200, screenWidth, screenHeight-200, paint);
@@ -149,16 +162,19 @@ public class GameActivity  extends Activity {
 			else if(onAir==true && posY>= screenHeight-200){
 				gameOver = true;
 				for(int i = 0; i<numPebbles ; i++){
-
+					numCaught++;
 					if (pebbles[i].collides(posX,posY) && pebbles[i].color==77){ gameOver = false;caught=true;}
 					else if (pebbles[i].collides(posX+25,posY) && pebbles[i].color==77){ gameOver = false;caught=true;}
 					else if (pebbles[i].collides(posX,posY+25) && pebbles[i].color==77){ gameOver = false;caught =true;}
 					else if (pebbles[i].collides(posX+25,posY+25) && pebbles[i].color==77){ gameOver = false;caught=true;}
+					else numCaught--;
 				}
+				if(numCaught<numRequired) gameOver=true;
 			}
 			else onAir = false;
 			
-			if(caught ){
+			if(caught && numCaught>=numRequired){
+				numCaught = 0;
 				counter = 1;
 				onAir = false;
 				deltaX = 0; deltaY = 0;
@@ -169,7 +185,13 @@ public class GameActivity  extends Activity {
 				startY=-1;
 				endY=-1;
 				numPebbles++;
-				score+=10;
+				if(numPebbles == 8){
+					numPebbles = 4;
+					numRequired++;
+					tip = "Catch " + numRequired + " Now";
+				}
+				else tip = "";
+				score+=10*numRequired;
 				pebbles = new Pebble[numPebbles];
 				for(int i = 0; i<numPebbles ; i++){
 					pebbles[i] = new Pebble(0,0, 25);
@@ -177,7 +199,7 @@ public class GameActivity  extends Activity {
 					
 					//pebbles[i].setColor(Color.YELLOW);
 				}
-				int[] colors = pebbles[0].generateColors(numPebbles, 1);
+				int[] colors = pebbles[0].generateColors(numPebbles, numRequired);
 				for(int i=0; i<numPebbles; i++){
 					pebbles[i].setColor(colors[i]);
 				}
@@ -218,17 +240,19 @@ public class GameActivity  extends Activity {
 			ContentValues values = new ContentValues();
 			values.put("name", extras.getString("name"));
 			values.put("score", score);
-			database.insert("Highscores", null, values);
+			if(database.insert("Highscores", null, values)!=0)
+				database.replace("Highscores", null, values);
 		}
 	}
-	
+	GameView gv;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		setContentView(new GameView(this));
+		gv = new GameView(this);
+		setContentView(gv);
 	}
 
 	@Override
@@ -236,5 +260,11 @@ public class GameActivity  extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.render_view_test, menu);
 		return true;
+	}
+	
+	@Override
+	public void onBackPressed(){
+		gv.music.stop();
+		finish();
 	}
 }
