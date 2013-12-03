@@ -16,6 +16,8 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MotionEvent;
@@ -45,8 +47,14 @@ public class GameActivity  extends Activity {
 		int counter=0;
 		Bitmap playerPebble, divide;
 		Bundle extras;
+		MediaPlayer music;
 		public GameView(Context context){
 			super(context);
+			AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+			audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 7, 0);
+			
+			music = MediaPlayer.create(context, R.raw.music);
+			music.setLooping(true);
 			extras = getIntent().getExtras();
 			playerPebble = BitmapFactory.decodeResource(getResources(), R.drawable.playpebble);
 			divide = BitmapFactory.decodeResource(getResources(), R.drawable.divide);
@@ -74,10 +82,12 @@ public class GameActivity  extends Activity {
 			for(int i=0; i<numPebbles; i++){
 				pebbles[i].setColor(colors[i]);
 			}
+			music.start();
 		}
 		
 		protected void onDraw(Canvas canvas){
 			if(gameOver){
+				music.stop();
 				updateHighscores();
 				Intent in = new Intent(myContext, GameOverActivity.class);
 				myContext.startActivity(in);
