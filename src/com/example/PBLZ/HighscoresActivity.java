@@ -1,10 +1,9 @@
 package com.example.PBLZ;
 
-import com.example.PBLZ.R;
+
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
@@ -21,57 +20,52 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
-public class GameOverActivity extends Activity{
-	class GameOverView extends View{
-		private Bitmap gameOverBitmap;
+public class HighscoresActivity extends Activity{
+	class HighscoresView extends View{
+		private Bitmap highscoresBitmap;
 		private Bitmap tryAgainUp, tryAgainDown;
-		private Bitmap highscoresUp, highscoresDown;
-		private Bitmap exitUp, exitDown;
 		private boolean tryAgainPressed = false;
-		private boolean highscoresPressed = false;
-		private boolean exitPressed = false;
 		float screenWidth, screenHeight;
 		Context myContext;
 		Paint paint;
 		MediaPlayer buttonSound;
-		public GameOverView(Context context){
+		String[] highscores;
+		public HighscoresView(Context context){
 			super(context);
 			AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 			audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 7, 0);
 			buttonSound = MediaPlayer.create(context, R.raw.press);
 
-			gameOverBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.gameover);
+			highscoresBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.highscoresbackground);
 			tryAgainUp = BitmapFactory.decodeResource(getResources(), R.drawable.tryagain);
 			tryAgainDown = BitmapFactory.decodeResource(getResources(), R.drawable.tryagaindown);
-			highscoresUp = BitmapFactory.decodeResource(getResources(), R.drawable.highscores);
-			highscoresDown = BitmapFactory.decodeResource(getResources(), R.drawable.highscoresdown);
-			exitUp = BitmapFactory.decodeResource(getResources(), R.drawable.exitbuttonup);
-			exitDown = BitmapFactory.decodeResource(getResources(), R.drawable.exitbuttondown);
 			paint = new Paint();
 			myContext = context;
+			highscores = new String[4];
+			for(int i=0;i<4;i++)
+				highscores[i] = getHighscore(i);
 		}
 		
 		protected void onDraw(Canvas canvas){
 			screenWidth = canvas.getWidth();
 			screenHeight = canvas.getHeight();
-			canvas.drawBitmap(gameOverBitmap, 0, 0, null);
+			canvas.drawBitmap(highscoresBitmap, 0, 0, null);
 			//canvas.drawColor(Color.BLACK);
 			paint.setTextSize(32);
 			paint.setStyle(Paint.Style.STROKE);
 			//paint.setColor(Color.rgb(46,46,46));
 			paint.setColor(Color.WHITE);
+			canvas.drawText(highscores[0], 170, 209,  paint);
+			paint.setTextSize(28);
+			canvas.drawText(highscores[1], 170, 264,  paint);
+			paint.setTextSize(24);
+			canvas.drawText(highscores[2], 170, 264+55,  paint);
+			paint.setTextSize(20);
+			canvas.drawText(highscores[3], 170, 264+55+55,  paint);
 			if(!tryAgainPressed)
-				canvas.drawBitmap(tryAgainUp, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.6, null);
+				canvas.drawBitmap(tryAgainUp, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.7, null);
 			else
-				canvas.drawBitmap(tryAgainDown, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.6, null);
-			if(!highscoresPressed)
-				canvas.drawBitmap(highscoresUp, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.7, null);
-			else
-				canvas.drawBitmap(highscoresDown, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.7, null);
-			if(!exitPressed)
-				canvas.drawBitmap(exitUp, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.8, null);
-			else
-				canvas.drawBitmap(exitDown, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.8, null);
+				canvas.drawBitmap(tryAgainDown, (canvas.getWidth()-150)/2, canvas.getHeight()*(float)0.7, null);
 			invalidate();
 		}
 		public boolean onTouchEvent(MotionEvent event){
@@ -80,14 +74,11 @@ public class GameOverActivity extends Activity{
 			switch (event.getAction()) {
 			case MotionEvent.ACTION_DOWN:
 				if(x>(screenWidth-150)/2 && x< ((screenWidth-150)/2+150)
-				&& y> (screenHeight*0.6) && y< ((screenHeight*0.6)+75))
+				&& y> (screenHeight*0.7) && y< ((screenHeight*0.7)+75))
 					{tryAgainPressed = true;buttonSound.start();}
 				else if(x>(screenWidth-150)/2 && x< ((screenWidth-150)/2+150)
-						&& y> (screenHeight*0.7) && y< ((screenHeight*0.7)+75))
-					{highscoresPressed = true;buttonSound.start();}
-				else if(x>(screenWidth-150)/2 && x< ((screenWidth-150)/2+150)
 						&& y> (screenHeight*0.8) && y< ((screenHeight*0.8)+75))
-					{exitPressed = true;buttonSound.start();}
+							tryAgainPressed = true;
 			    return true;
 		    case MotionEvent.ACTION_MOVE:
 		    	return true;
@@ -99,41 +90,37 @@ public class GameOverActivity extends Activity{
 		    		//myContext.startActivity(gameIntent);
 		    		finish();
 		    	}
-		    	if(highscoresPressed){
-		    		Intent gameIntent = new Intent(myContext, HighscoresActivity.class);
-		    		myContext.startActivity(gameIntent);
-		    		finish();
-		    	}
-		    	if(exitPressed){
-		    		finish();
-		    	}
 		    	tryAgainPressed = false;
 				 return true;
 			}
 			return false;
 		}
-		public String getEntry(){
+		public String getHighscore(int rank){
 			DatabaseHelper helper = new DatabaseHelper(myContext);
 			SQLiteDatabase database = helper.getReadableDatabase();
 			Cursor c = database.rawQuery("SELECT * FROM Highscores ORDER BY score DESC", null);
-			String highscores = "";
+			String highscore = "";
+			int i=0;
 			if(c.moveToFirst()){
 				do{
-					highscores = highscores +c.getString(0) +  " " + c.getInt(1) + "\n";
+					if(i==rank) {highscore = c.getString(0) +  " " + c.getInt(1) + "\n"; break;}
+					else i++;
 				}while(c.moveToNext());
 			}
-			
-			return highscores;
+			database.close();
+			return highscore;
 		}
-		
 	}
+	
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		setContentView(new GameOverView(this));
+		HighscoresView hv = new HighscoresView(this);
+		setContentView(hv);
 	}
 
 	@Override
@@ -142,8 +129,4 @@ public class GameOverActivity extends Activity{
 		getMenuInflater().inflate(R.menu.render_view_test, menu);
 		return true;
 	}
-	
-
-		
-
 }

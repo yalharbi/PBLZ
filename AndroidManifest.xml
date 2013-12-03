@@ -39,6 +39,11 @@
             android:label="PBLS" >
             android:screenOrientation="portrait"
         </activity>
+        <activity
+            android:name="com.example.PBLZ.HighscoresActivity"
+            android:label="PBLS" >
+            android:screenOrientation="portrait"
+        </activity>
     </application>
 
 </manifest>

@@ -6,6 +6,8 @@ import java.util.Random;
 
 import com.example.PBLZ.R;
 
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
@@ -30,7 +32,7 @@ import android.view.WindowManager;
 public class RenderViewTest extends Activity{
 
 	class TitleView extends View {
-		
+		MediaPlayer buttonSound;
 		private Bitmap titleBitmap;
 		private Bitmap startButtonUp, startButtonDown;
 		private Bitmap exitButtonUp, exitButtonDown;
@@ -41,7 +43,9 @@ public class RenderViewTest extends Activity{
 		
 		public TitleView(Context context){
 			super(context);
-			
+			AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+			audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 7, 0);
+			buttonSound = MediaPlayer.create(context, R.raw.press);
 			titleBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.titlebackground);
 			startButtonUp = BitmapFactory.decodeResource(getResources(), R.drawable.startbuttonup);
 			startButtonDown = BitmapFactory.decodeResource(getResources(), R.drawable.startbuttondown);
@@ -63,11 +67,11 @@ public class RenderViewTest extends Activity{
 			if(!exitButtonPressed)
 				canvas.drawBitmap(exitButtonUp, (float)(canvas.getWidth()-150)/2,canvas.getHeight()*(float)0.8, null);
 			else
-				canvas.drawBitmap(exitButtonDown, (float)(canvas.getWidth()-150)/2,canvas.getHeight()*(float)0.7, null);
+				canvas.drawBitmap(exitButtonDown, (float)(canvas.getWidth()-150)/2,canvas.getHeight()*(float)0.8, null);
 				
 			invalidate();
 			
-			if(exitButtonPressed) System.exit(0);
+			//if(exitButtonPressed) System.exit(0);
 		}
 		
 
@@ -81,10 +85,10 @@ public class RenderViewTest extends Activity{
 			case MotionEvent.ACTION_DOWN:
 				if(x>(screenWidth-150)/2 && x< ((screenWidth-150)/2+150)
 				&& y> (screenHeight*0.7) && y< ((screenHeight*0.7)+75))
-					startButtonPressed = true;
+					{startButtonPressed = true;buttonSound.start();}
 				else if(x>(screenWidth-150)/2 && x< ((screenWidth-150)/2+150)
 						&& y> (screenHeight*0.8) && y< ((screenHeight*0.8)+75))
-					exitButtonPressed = true;
+					{exitButtonPressed = true;buttonSound.start();}
 			    return true;
 		    case MotionEvent.ACTION_MOVE:
 		    	return true;
@@ -95,6 +99,9 @@ public class RenderViewTest extends Activity{
 		    		Intent gameIntent = new Intent(myContext, UserWeatherActivity.class);
 		    		myContext.startActivity(gameIntent);
 		    	//	finish();
+		    	}
+		    	else if(exitButtonPressed){
+		    		finish();
 		    	}
 		    	startButtonPressed = false;
 				 return true;

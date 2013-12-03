@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
 import com.example.PBLZ.R;
@@ -19,6 +20,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -40,6 +43,7 @@ public class UserWeatherActivity extends Activity implements OnTouchListener{
 	EditText nameT, zipcodeT;
 	ImageView iv, iv2;
 	Bitmap proceed, skip;
+	MediaPlayer buttonSound;
 	class Weather extends AsyncTask<Integer, Void, Integer>{
 		@Override
 		protected Integer doInBackground(Integer... zipcode){
@@ -75,8 +79,9 @@ public class UserWeatherActivity extends Activity implements OnTouchListener{
 	}
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		/*StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-		StrictMode.setThreadPolicy(policy);*/
+		AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+		audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 7, 0);
+		buttonSound = MediaPlayer.create(this, R.raw.press);
 		LinearLayout ll = new LinearLayout(this);
 		ll.setBackgroundColor(Color.BLACK);
 		ll.setOrientation(LinearLayout.VERTICAL);
@@ -104,6 +109,10 @@ public class UserWeatherActivity extends Activity implements OnTouchListener{
 		iv2.setOnTouchListener(this);
 		l2.addView(iv2);
 		ll.addView(l2);
+		Bitmap exp = BitmapFactory.decodeResource(getResources(), R.drawable.userweather);
+		ImageView bot = new ImageView(this);
+		bot.setImageBitmap(exp);
+		ll.addView(bot);
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -122,9 +131,22 @@ public class UserWeatherActivity extends Activity implements OnTouchListener{
 	public boolean onTouch(View v, MotionEvent event){
 		if(event.getAction() == MotionEvent.ACTION_UP){
 			if(v.equals(iv)){
+				String zipcodeString = zipcodeT.getText().toString();
 				name = nameT.getText().toString();
-				zipcode = Integer.parseInt(zipcodeT.getText().toString());
+				if (name.length()>10) name = "nameless";
+				if(zipcodeString.length()!=5){
+					Random rand = new Random();
+					weather = rand.nextInt(68) + 32;
+				}
+				else{ 
+					for(int i=0;i<5;i++){
+						if(zipcodeString.charAt(i) <48 || zipcodeString.charAt(i) >57){
+							weather = new Random().nextInt(68)+32;
+						}
+					}
+				}
 				if(weather==-1){weather=1; try {
+					zipcode = Integer.parseInt(zipcodeT.getText().toString());
 					weather = getWeather(zipcode);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -133,10 +155,12 @@ public class UserWeatherActivity extends Activity implements OnTouchListener{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}}
+				buttonSound.start();
 			}
 			else if(v.equals(iv2)){
-				name = " ";
-				weather = -1;
+				name = "Nameless";
+				weather = new Random().nextInt(68)+32;
+				buttonSound.start();
 			}
 			//button.setText(weather + " ");
     		Intent gameIntent = new Intent(this, GameActivity.class);
